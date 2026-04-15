@@ -30,7 +30,6 @@
 #include <Storages/StorageMaterializedView.h>
 #include <Storages/StorageMerge.h>
 #include <Storages/StorageValues.h>
-#include <Storages/StorageView.h>
 
 #include <Analyzer/ConstantNode.h>
 #include <Analyzer/ColumnNode.h>
@@ -1232,7 +1231,6 @@ JoinTreeQueryPlan buildQueryPlanForTableExpression(QueryTreeNodePtr table_expres
                         }
 
                         effective_storage->read(
-                        effective_storage->read(
                             query_plan,
                             columns_names,
                             effective_snapshot,
@@ -1263,10 +1261,10 @@ JoinTreeQueryPlan buildQueryPlanForTableExpression(QueryTreeNodePtr table_expres
 
                     if (query_settings[Setting::parallel_replicas_allow_view_over_mergetree])
                     {
-                        const auto * view = typeid_cast<const StorageView *>(current_storage.get());
-                        if (view)
+                        const auto * current_view = typeid_cast<const StorageView *>(current_storage.get());
+                        if (current_view)
                         {
-                            auto underlying_storage = view->getUnderlyingMergeTreeStorageForParallelReplicas(context);
+                            auto underlying_storage = current_view->getUnderlyingMergeTreeStorageForParallelReplicas(context);
                             if (!underlying_storage)
                                 return false;
 
