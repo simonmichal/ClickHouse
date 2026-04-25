@@ -7,8 +7,11 @@
 -- This must not prevent the view's own positional args from being resolved,
 -- because the view is expanded on the local node (not on the initiator).
 --
--- The fix: replaceNodesWithPositionalArguments checks getQueryContext() for
--- the user's original setting rather than the system-overridden copy.
+-- The fix: replaceNodesWithPositionalArguments skips resolution for non-view
+-- contexts when isPositionalArgumentsAlreadyResolved() is true (outer query
+-- already resolved them), but exempts view-inner contexts (isViewInnerQuery())
+-- because views are expanded on the local node and were never resolved by the
+-- initiator.
 --
 -- Refs: https://github.com/ClickHouse/ClickHouse/issues/89940
 
@@ -19,8 +22,8 @@ CREATE TABLE test_table (str String) ENGINE = MergeTree ORDER BY str;
 INSERT INTO test_table VALUES ('a'), ('b'), ('c');
 
 -- GROUP BY 1 should resolve to GROUP BY str → 3 distinct groups.
--- Without the fix, createLocalPlan's enable_positional_arguments=false caused
--- GROUP BY 1 to stay as a literal constant, which was then removed by
+-- Without the fix, replaceNodesWithPositionalArguments skipped the view's
+-- GROUP BY 1 entirely, leaving it as a literal constant that was removed by
 -- optimize_group_by_constant_keys, collapsing the query to a global aggregate.
 CREATE VIEW test_view AS SELECT str, count() AS cnt FROM test_table GROUP BY 1;
 
